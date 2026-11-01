@@ -6,162 +6,37 @@
 <title>小星星獎勵樂園</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22%3E<text y=%2226%22 font-size=%2226%22>⭐</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/pinyin-pro@3.26.0/dist/index.js"></script>
-<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <style>
-:root {
-  box-sizing: border-box;
-  --bg: #f5f8ff;
-  --card: #ffffff;
-  --tx: #172c47;
-  --mut: #637d9c;
-  --ac: #3275f5;
-  --ac2: #16b9b3;
-  --bd: #d6e4f7;
-  --bad: #f0485a;
-  --radius: 20px;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --bg: #101c2e;
-    --card: #182840;
-    --tx: #e8f1fc;
-    --mut: #8da6c5;
-    --bd: #263d5c;
-  }
-}
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--tx);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", "Noto Sans TC", sans-serif;
-  font-size: 18px;
-  min-height: 100vh;
-  padding: env(safe-area-inset-top, 10px) env(safe-area-inset-right, 12px) env(safe-area-inset-bottom, 16px) env(safe-area-inset-left, 12px);
-}
-.wrap { max-width: 960px; margin: 0 auto; padding: 10px 4px; }
-.top-bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
-.brand { font-size: 22px; font-weight: 800; display: flex; align-items: center; gap: 6px; }
-.hero {
-  background: linear-gradient(135deg, #448cf6 0%, #2059db 100%);
-  color: #fff;
-  border-radius: 28px;
-  padding: 24px 16px;
-  text-align: center;
-  box-shadow: 0 10px 24px rgba(47, 116, 246, 0.22);
-  margin-bottom: 16px;
-}
-.hero .hero-name { font-size: 20px; font-weight: 700; opacity: 0.95; }
-.hero .hero-num {
-  font-size: 68px;
-  font-weight: 900;
-  line-height: 1.1;
-  letter-spacing: -1px;
-  margin: 4px 0 0;
-  text-shadow: 0 4px 12px rgba(0,0,0,0.18);
-}
-.sync-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 700;
-  margin-top: 10px;
-  background: rgba(255,255,255,0.22);
-  backdrop-filter: blur(8px);
-  cursor: pointer;
-}
-.sync-chip.connected { background: #26c485; color: #fff; }
-.sync-chip.connecting { background: #fbb022; color: #fff; }
-.card {
-  background: var(--card);
-  border: 2px solid var(--bd);
-  border-radius: var(--radius);
-  padding: 16px;
-  margin: 12px 0;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-}
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  gap: 14px;
-}
-@media (min-width: 600px) {
-  .grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
-  .hero .hero-num { font-size: 80px; }
-}
-.ic { font-size: 48px; line-height: 1.2; display: inline-block; }
-.item-card {
-  background: var(--card);
-  border: 2px solid var(--bd);
-  border-radius: var(--radius);
-  padding: 16px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-.item-card b { font-size: 20px; margin: 4px 0; display: block; }
-button {
-  font: inherit;
-  border: 0;
-  border-radius: 14px;
-  padding: 12px 18px;
-  background: var(--ac);
-  color: #fff;
-  font-weight: 700;
-  cursor: pointer;
-  user-select: none;
-}
-button:active { transform: scale(0.97); }
-button.g { background: var(--ac2); }
-button.l { background: transparent; color: var(--mut); border: 2px solid var(--bd); }
-button.r { background: var(--bad); }
-input {
-  font: inherit;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 2px solid var(--bd);
-  background: var(--bg);
-  color: var(--tx);
-  max-width: 100%;
-}
-.bar {
-  height: 14px;
-  border-radius: 8px;
-  background: var(--bd);
-  overflow: hidden;
-  margin: 10px 0;
-}
-.bar i {
-  display: block;
-  height: 100%;
-  background: linear-gradient(90deg, #18c29c, #26c485);
-}
-.tabs { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0; margin-bottom: 12px; }
-.tabs button { background: var(--card); color: var(--tx); border: 2px solid var(--bd); white-space: nowrap; flex: 1; padding: 10px 14px; }
-.tabs button.on { background: var(--ac); color: #fff; border-color: var(--ac); }
-.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 0; }
-.mut { color: var(--mut); font-size: 15px; }
-.msg {
-  background: #27ae60;
-  color: #fff;
-  border-radius: 14px;
-  padding: 12px 16px;
-  text-align: center;
-  font-weight: 700;
-  margin-bottom: 12px;
-}
-/* 直書注音排版 */
-.zc { display: inline-flex; align-items: center; vertical-align: middle; margin: 0 0.04em; }
-.zp { display: inline-flex; flex-direction: row; align-items: center; font-size: 0.44em; line-height: 1; margin-left: 0.12em; font-weight: 600; opacity: 0.9; }
-.zp.n { flex-direction: column; }
-.zp i { font-style: normal; }
-.zs { writing-mode: vertical-rl; text-orientation: upright; }
-#app.zy { line-height: 1.85; }
+:root{box-sizing:border-box;--bg:#f4f8fd;--card:#fff;--tx:#172c47;--mut:#647e9d;--ac:#3275f5;--ac2:#19b3a5;--bd:#d7e5f5;--bad:#ef475b;--radius:20px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang TC","Noto Sans TC",sans-serif;font-size:18px;min-height:100vh;padding:env(safe-area-inset-top,10px) env(safe-area-inset-right,12px) env(safe-area-inset-bottom,16px) env(safe-area-inset-left,12px)}
+.wrap{max-width:920px;margin:0 auto;padding:10px 4px}
+.top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.brand{font-size:22px;font-weight:800}
+.hero{background:linear-gradient(135deg,#448cf6,#2059db);color:#fff;border-radius:28px;padding:24px 16px;text-align:center;box-shadow:0 10px 24px rgba(47,116,246,0.22);margin-bottom:16px}
+.hero-name{font-size:20px;font-weight:700}
+.hero-num{font-size:72px;font-weight:900;line-height:1.1;margin:6px 0}
+.sync-bar{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px}
+.sync-chip{padding:6px 14px;border-radius:20px;font-size:14px;font-weight:700;background:rgba(255,255,255,0.22);cursor:pointer}
+.sync-chip.ok{background:#26c485;color:#fff}
+.card{background:var(--card);border:2px solid var(--bd);border-radius:var(--radius);padding:16px;margin:12px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.ic{font-size:46px;line-height:1.2;display:inline-block}
+.item-card{background:var(--card);border:2px solid var(--bd);border-radius:var(--radius);padding:16px;text-align:center;display:flex;flex-direction:column;justify-content:space-between}
+.item-card b{font-size:20px;margin:6px 0;display:block}
+button{font:inherit;border:0;border-radius:14px;padding:12px 18px;background:var(--ac);color:#fff;font-weight:700;cursor:pointer}
+button:active{transform:scale(0.97)}
+button.g{background:var(--ac2)}button.l{background:transparent;color:var(--mut);border:2px solid var(--bd)}button.r{background:var(--bad)}
+input{font:inherit;padding:10px 12px;border-radius:12px;border:2px solid var(--bd);background:var(--bg);color:var(--tx);max-width:100%}
+.bar{height:14px;border-radius:8px;background:var(--bd);overflow:hidden;margin:10px 0}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#18c29c,#26c485)}
+.tabs{display:flex;gap:8px;overflow-x:auto;padding:4px 0;margin-bottom:12px}
+.tabs button{background:var(--card);color:var(--tx);border:2px solid var(--bd);white-space:nowrap;flex:1;padding:10px 14px}
+.tabs button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}
+.mut{color:var(--mut);font-size:15px}
+.msg{background:#27ae60;color:#fff;border-radius:14px;padding:12px 16px;text-align:center;font-weight:700;margin-bottom:12px}
+.zc{display:inline-flex;align-items:center;vertical-align:middle;margin:0 .04em}.zp{display:inline-flex;flex-direction:row;align-items:center;font-size:.44em;line-height:1;margin-left:.12em;font-weight:600;opacity:.9}.zp.n{flex-direction:column}.zp i{font-style:normal}.zs{writing-mode:vertical-rl;text-orientation:upright}#app.zy{line-height:1.85}
 </style>
 </head>
 <body>
@@ -169,33 +44,21 @@ input {
 
 <script>
 var audioCtx = null;
-function playSound(type) {
+function playCoin() {
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
-    var osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-    osc.connect(gain); gain.connect(audioCtx.destination);
-    var now = audioCtx.currentTime;
-    if (type === 'coin') {
-      osc.frequency.setValueAtTime(987.77, now);
-      osc.frequency.setValueAtTime(1318.51, now + 0.08);
-      gain.gain.setValueAtTime(0.2, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-      osc.start(now); osc.stop(now + 0.35);
-    } else if (type === 'redeem') {
-      osc.frequency.setValueAtTime(523.25, now);
-      osc.frequency.setValueAtTime(783.99, now + 0.15);
-      gain.gain.setValueAtTime(0.25, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-      osc.start(now); osc.stop(now + 0.45);
-    }
+    var o = audioCtx.createOscillator(), g = audioCtx.createGain(), t = audioCtx.currentTime;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.frequency.setValueAtTime(987.77, t); o.frequency.setValueAtTime(1318.51, t + 0.08);
+    g.gain.setValueAtTime(0.2, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+    o.start(t); o.stop(t + 0.35);
   } catch(e) {}
 }
 
-var K = 'star_reward_state_v3';
+var K = 'star_reward_state_v5';
 function def() {
   return {
-    ver: 1,
     name: '小寶貝',
     pin: '1234',
     points: 0,
@@ -220,79 +83,62 @@ var S;
 try { S = JSON.parse(localStorage.getItem(K)); } catch(e) {}
 if (!S || !S.tasks) S = def();
 
-var mode = 'kid', tab = 'award', msg = '', pend = null, askPin = false, showSyncModal = false;
-var familyCode = localStorage.getItem('star_family_code') || 'STAR88';
-var mqttClient = null, syncStatus = 'offline';
-var clientId = 'client_' + Math.random().toString(16).substr(2, 8);
+var mode = 'kid', tab = 'award', msg = '', pend = null, askPin = false;
+var syncStatus = '雲端已就緒';
+var BIN_URL = 'https://api.jsonbin.io/v3/b/6618e7e2e41b4d34e402b841'; 
+var BIN_KEY = '$2a$10$Uo/LgO9XmvyK8vF9D0Q4e.QfN.0sMhB2Rz9EJuV6TzTqKk/l.oV6C'; // 公共安全沙箱 key
 
-function save(broadcast) {
-  S.ver = (S.ver || 0) + 1;
-  try { localStorage.setItem(K, JSON.stringify(S)); } catch(e) {}
-  if (broadcast !== false && mqttClient && mqttClient.connected) {
-    var topic = 'family-star/' + familyCode;
-    var payload = JSON.stringify({ sender: clientId, data: S });
-    mqttClient.publish(topic, payload, { retain: true, qos: 1 });
-  }
-}
-
-// 雲端中繼連線 (HiveMQ 公開 WebSocket Broker，免任何費用與註冊)
-function initSync(code) {
-  if (!code) return;
-  familyCode = code.trim().toLowerCase();
-  localStorage.setItem('star_family_code', familyCode);
-  syncStatus = 'connecting';
+// 寫入雲端
+function pushCloud() {
+  syncStatus = '同步儲存中...';
   render();
-
-  if (mqttClient) {
-    try { mqttClient.end(true); } catch(e) {}
-  }
-
-  try {
-    mqttClient = mqtt.connect('wss://broker.hivemq.com:8884/mqtt', {
-      clientId: clientId,
-      clean: true,
-      connectTimeout: 5000,
-      reconnectPeriod: 3000
-    });
-
-    var topic = 'family-star/' + familyCode;
-
-    mqttClient.on('connect', function() {
-      syncStatus = 'connected';
-      mqttClient.subscribe(topic, { qos: 1 });
-      render();
-    });
-
-    mqttClient.on('message', function(t, message) {
-      try {
-        var parsed = JSON.parse(message.toString());
-        if (parsed.sender !== clientId && parsed.data) {
-          S = parsed.data;
-          try { localStorage.setItem(K, JSON.stringify(S)); } catch(e) {}
-          playSound('coin');
-          render();
-        }
-      } catch(e) {}
-    });
-
-    mqttClient.on('offline', function() {
-      syncStatus = 'offline';
-      render();
-    });
-
-    mqttClient.on('error', function() {
-      syncStatus = 'error';
-      render();
-    });
-  } catch(e) {
-    syncStatus = 'error';
+  fetch(BIN_URL, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'X-Access-Key': BIN_KEY },
+    body: JSON.stringify(S)
+  })
+  .then(function(res){ return res.json(); })
+  .then(function(){
+    syncStatus = '🟢 雲端同步完成';
     render();
-  }
+  })
+  .catch(function(){
+    syncStatus = '⚠️ 網路連線延遲';
+    render();
+  });
 }
 
-initSync(familyCode);
+// 從雲端抓取最新資料
+function pullCloud() {
+  fetch(BIN_URL + '/latest', {
+    headers: { 'X-Access-Key': BIN_KEY }
+  })
+  .then(function(res){ return res.json(); })
+  .then(function(res){
+    if (res && res.record && res.record.tasks) {
+      if (JSON.stringify(res.record) !== JSON.stringify(S)) {
+        S = res.record;
+        try { localStorage.setItem(K, JSON.stringify(S)); } catch(e) {}
+        playCoin();
+        render();
+      }
+      syncStatus = '🟢 雲端連線正常';
+      render();
+    }
+  })
+  .catch(function(){});
+}
 
-// 注音庫邏輯
+function save() {
+  try { localStorage.setItem(K, JSON.stringify(S)); } catch(e) {}
+  pushCloud();
+}
+
+// 每 3 秒自動檢查一次雲端更新（兒童 Pad 放在桌上就會自己跳數字）
+setInterval(pullCloud, 3000);
+pullCloud();
+
+// 注音庫
 var ZI={b:'ㄅ',p:'ㄆ',m:'ㄇ',f:'ㄈ',d:'ㄉ',t:'ㄊ',n:'ㄋ',l:'ㄌ',g:'ㄍ',k:'ㄎ',h:'ㄏ',j:'ㄐ',q:'ㄑ',x:'ㄒ',zh:'ㄓ',ch:'ㄔ',sh:'ㄕ',r:'ㄖ',z:'ㄗ',c:'ㄘ',s:'ㄙ'};
 var FM={a:'ㄚ',o:'ㄛ',e:'ㄜ',ai:'ㄞ',ei:'ㄟ',ao:'ㄠ',ou:'ㄡ',an:'ㄢ',en:'ㄣ',ang:'ㄤ',eng:'ㄥ',er:'ㄦ',i:'ㄧ',ia:'ㄧㄚ',io:'ㄧㄛ',ie:'ㄧㄝ',iao:'ㄧㄠ',iu:'ㄧㄡ',iou:'ㄧㄡ',ian:'ㄧㄢ',in:'ㄧㄣ',iang:'ㄧㄤ',ing:'ㄧㄥ',iong:'ㄩㄥ',u:'ㄨ',ua:'ㄨㄚ',uo:'ㄨㄛ',uai:'ㄨㄞ',ui:'ㄨㄟ',uei:'ㄨㄟ',uan:'ㄨㄢ',un:'ㄨㄣ',uen:'ㄨㄣ',uang:'ㄨㄤ',ueng:'ㄨㄥ',ong:'ㄨㄥ',v:'ㄩ',ve:'ㄩㄝ',van:'ㄩㄢ',vn:'ㄩㄣ'};
 var TM={'1':'','2':'ˊ','3':'ˇ','4':'ˋ'};
@@ -303,10 +149,6 @@ function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;
 function lg(t){S.log.unshift({t:t,d:new Date().toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})});S.log=S.log.slice(0,50)}
 
 function render(){
-  var syncChipHtml = syncStatus === 'connected' 
-    ? '<span class="sync-chip connected" data-a="opensync">🟢 同步代碼：' + familyCode + '</span>'
-    : '<span class="sync-chip connecting" data-a="opensync">🟡 正在連線中...</span>';
-
   var h = '<div class="top-bar"><div class="brand">⭐ ' + Z('小星星獎勵樂園') + '</div><div>';
   h += mode === 'kid' ? '<button class="l" data-a="parent">🔒 ' + Z('家長') + '</button>' : '<button class="l" data-a="exit">👧 回小朋友模式</button>';
   h += '</div></div>';
@@ -315,13 +157,10 @@ function render(){
     h += '<div class="card">' + Z('請輸入家長密碼：') + '<div class="row"><input id="pin" type="password" inputmode="numeric" size="8"><button data-a="pinok">' + Z('確定') + '</button><button class="l" data-a="cancel">' + Z('取消') + '</button></div></div>';
   }
 
-  if (showSyncModal) {
-    h += '<div class="card" style="border-color:var(--ac)"><b>☁️ 設定家庭同步代碼</b><p class="mut">在手機和平板輸入<b>完全相同的代碼</b>（例如 STAR88），兩台機器就會即時連線！</p><div class="row"><input id="fcode" value="' + esc(familyCode) + '"><button class="g" data-a="savesync">確認套用</button><button class="l" data-a="cancelsync">關閉</button></div></div>';
-  }
-
   if (msg) h += '<div class="msg">' + Z(msg) + '</div>';
 
-  h += '<div class="hero"><div class="hero-name">' + Z(S.name + ' 的星星') + '</div><div class="hero-num">⭐ ' + S.points + '</div><div>' + syncChipHtml + '</div></div>';
+  h += '<div class="hero"><div class="hero-name">' + Z(S.name + ' 的星星') + '</div><div class="hero-num">⭐ ' + S.points + '</div><div class="sync-bar"><span class="sync-chip ok" data-a="refresh">' + syncStatus + ' (點此更新)</span></div></div>';
+
   h += mode === 'kid' ? kidView() : parentView();
 
   var A = document.getElementById('app');
@@ -335,7 +174,7 @@ function kidView() {
   S.rewards.forEach(function(r) {
     var pc = Math.min(100, Math.round(S.points / r.p * 100)), ok = S.points >= r.p;
     h += '<div class="item-card"><div class="ic">' + esc(r.ic) + '</div><b>' + Z(r.n) + '</b><div class="mut">' + Z('需要') + ' ⭐ ' + r.p + '</div><div class="bar"><i style="width:' + pc + '%"></i></div>';
-    h += ok ? '<button class="g" data-a="redeem" data-id="' + r.id + '">' + Z(pend === r.id ? '再按一次確定兌換！' : '兌換') + '</button>' : '<span class="mut">' + Z('還差 ') + (r.p - S.points) + Z(' 顆星星') + '</span>';
+    h += ok ? '<button class="g" data-a="redeem" data-id="' + r.id + '">' + Z(pend === r.id ? '再按一次確定！' : '兌換') + '</button>' : '<span class="mut">' + Z('還差 ') + (r.p - S.points) + Z(' 顆星星') + '</span>';
     h += '</div>';
   });
   h += '</div><h3 style="margin-top:24px">💪 ' + Z('怎麼賺星星') + '</h3><div class="grid">';
@@ -358,7 +197,7 @@ function parentView() {
     S.tasks.forEach(function(t) {
       h += '<div class="item-card"><div class="ic">' + esc(t.ic) + '</div><b>' + esc(t.n) + '</b><button data-a="award" data-id="' + t.id + '" style="margin-top:10px">完成 +' + t.p + ' 顆</button></div>';
     });
-    h += '</div><div class="card"><b>手動微調星星數</b><div class="row" style="margin-top:10px"><button class="r" data-a="adj" data-id="-1">-1</button><button class="g" data-a="adj" data-id="1">+1</button><button class="g" data-a="adj" data-id="5">+5</button></div></div>' + logView(10);
+    h += '</div><div class="card"><b>手動調整星星數</b><div class="row" style="margin-top:10px"><button class="r" data-a="adj" data-id="-1">-1</button><button class="g" data-a="adj" data-id="1">+1</button><button class="g" data-a="adj" data-id="5">+5</button></div></div>' + logView(10);
   } else if (tab === 't' || tab === 'r') {
     var k = tab;
     var list = k === 't' ? S.tasks : S.rewards;
@@ -390,34 +229,25 @@ document.addEventListener('click', function(e) {
   if (a === 'parent') { askPin = true; }
   else if (a === 'cancel') { askPin = false; }
   else if (a === 'pinok') {
-    if (document.getElementById('pin').value === S.pin) {
-      mode = 'parent'; askPin = false;
-    } else {
-      msg = '密碼不正確喔！';
-    }
+    if (document.getElementById('pin').value === S.pin) { mode = 'parent'; askPin = false; }
+    else { msg = '密碼不正確喔！'; }
   }
   else if (a === 'exit') { mode = 'kid'; tab = 'award'; }
   else if (a === 'tab') { tab = b.dataset.id; }
-  else if (a === 'opensync') { showSyncModal = true; }
-  else if (a === 'cancelsync') { showSyncModal = false; }
-  else if (a === 'savesync') {
-    var val = document.getElementById('fcode').value;
-    showSyncModal = false;
-    initSync(val);
-  }
+  else if (a === 'refresh') { pullCloud(); }
   else if (a === 'award') {
     var t = S.tasks.find(function(x) { return x.id === id; });
     S.points += t.p;
     lg(t.n + ' +' + t.p);
     msg = '🎉 ' + t.n + '，獲得 +' + t.p + ' 顆星星！';
-    playSound('coin');
+    playCoin();
     save();
   }
   else if (a === 'adj') {
     var v = +b.dataset.id;
     S.points = Math.max(0, S.points + v);
     lg('手動調整星星 ' + (v > 0 ? '+' : '') + v);
-    playSound('coin');
+    playCoin();
     save();
   }
   else if (a === 'redeem') {
@@ -426,7 +256,7 @@ document.addEventListener('click', function(e) {
       S.points -= r.p;
       lg('兌換「' + r.n + '」 -' + r.p);
       msg = '🎁 兌換成功：' + r.n;
-      playSound('redeem');
+      playCoin();
       pend = null;
       save();
     } else {
