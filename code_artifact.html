@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="小星星樂園">
+  <meta name="theme-color" content="#f59e0b">
+  <title>小星星獎勵樂園 ⭐ 即時同步版</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 注音轉換函式庫 -->
+  <script src="https://cdn.jsdelivr.net/npm/pinyin-pro@3.26.0/dist/index.js"></script>
+
+  <style>
+    :root {
+      --font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      font-family: var(--font-family);
+      touch-action: manipulation;
+    }
+    /* 注音直書排版樣式 */
+    .zc {
+      display: inline-flex;
+      align-items: center;
+      vertical-align: baseline;
+      margin: 0 0.05em;
+      position: relative;
+    }
+    .zp {
+      display: inline-flex;
+      flex-direction: row;
+      align-items: center;
+      font-size: 0.44em;
+      line-height: 1;
+      margin-left: 0.12em;
+      font-weight: 600;
+      color: #1d4ed8;
+      opacity: 0.95;
+      user-select: none;
+    }
+    .zp.n {
+      flex-direction: column;
+    }
+    .zp i {
+      font-style: normal;
+      font-size: 0.9em;
+    }
+    .zs {
+      writing-mode: vertical-rl;
+      text-orientation: upright;
+      letter-spacing: -0.05em;
+    }
+    .zy-line {
+      line-height: 1.85 !important;
+    }
+    /* 動畫效果 */
+    @keyframes starPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.12) rotate(4deg); }
+    }
+    .star-pulse {
+      animation: starPulse 2.5s infinite ease-in-out;
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.9); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .pop-in {
+      animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+  </style>
+</head>
+<body class="bg-amber-50/70 text-slate-800 min-h-screen pb-16 antialiased selection:bg-amber-200">
+
+  <div id="app" class="max-w-4xl mx-auto px-4 py-4 md:py-6"></div>
+
+  <!-- 浮動提示 Toast -->
+  <div id="toast" class="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900/90 text-white px-6 py-3 rounded-full text-base font-bold shadow-2xl transition-all duration-300 opacity-0 pointer-events-none transform -translate-y-2 flex items-center gap-2">
+    <span id="toast-text"></span>
+  </div>
+
+  <!-- 家長驗證 PIN 彈窗 -->
+  <div id="pin-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl border-4 border-amber-300 pop-in text-center">
+      <div class="text-4xl mb-2">🔒</div>
+      <h3 class="text-xl font-black text-slate-800 mb-1">家長安全驗證</h3>
+      <p class="text-xs text-slate-500 mb-4">請輸入家長安全 PIN 碼（預設 1234）</p>
+      
+      <input id="pin-input" type="password" inputmode="numeric" maxlength="8" placeholder="••••" 
+             class="w-full text-center text-3xl tracking-widest font-black py-3 border-2 border-slate-300 rounded-2xl mb-4 focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-200 bg-slate-50">
+      
+      <div class="grid grid-cols-2 gap-3">
+        <button id="pin-cancel-btn" class="py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl active:scale-95 transition-transform">
+          取消
+        </button>
+        <button id="pin-confirm-btn" class="py-3 bg-amber-400 hover:bg-amber-500 text-amber-950 font-black rounded-xl shadow active:scale-95 transition-transform">
+          確認進入
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 家庭同步碼設定 Modal -->
+  <div id="sync-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border-4 border-blue-300 pop-in">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="text-xl font-black text-slate-800 flex items-center gap-2">
+          <span>☁️</span> <span>設定家庭即時同步碼</span>
+        </h3>
+        <button onclick="closeSyncModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg p-1">✕</button>
+      </div>
+      
+      <p class="text-xs sm:text-sm text-slate-600 mb-4 leading-relaxed">
+        在您的小孩平板與您的手機輸入<strong class="text-blue-600">相同的家庭代碼</strong>，兩台裝置即可自動雲端連線。手機給星星，平板畫面馬上更新！
+      </p>
+
+      <div class="mb-4">
+        <label class="block text-xs font-black text-slate-500 mb-1.5">家庭專屬代碼 (英數字)：</label>
+        <div class="flex gap-2">
+          <input id="room-code-input" type="text" maxlength="15" placeholder="例如：HOME88" 
+                 class="uppercase flex-1 text-center text-xl font-black tracking-widest p-2.5 border-2 border-slate-300 rounded-2xl focus:outline-none focus:border-blue-500 bg-slate-50">
+          <button onclick="generateRandomRoomCode()" class="px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-2xl border border-slate-300 active:scale-95">
+            隨機產生
+          </button>
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <button onclick="saveAndConnectRoom()" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-2xl shadow active:scale-95 transition-transform">
+          連線並開始同步
+        </button>
+        <button onclick="disconnectRoom()" class="w-full py-2.5 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 font-bold text-xs rounded-xl transition-all">
+          退出家庭雲端（改為單機離線儲存）
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PWA 安裝至桌面教學 Modal -->
+  <div id="pwa-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border-4 border-amber-300 pop-in">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-black text-slate-800 flex items-center gap-2">📲 加入手機/兒童平板桌面</h3>
+        <button onclick="closePwaModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold p-1">✕</button>
+      </div>
+      <div class="space-y-3 text-xs sm:text-sm text-slate-600 leading-relaxed">
+        <div class="p-3.5 bg-amber-50 rounded-2xl border border-amber-200">
+          <p class="font-black text-amber-900 mb-1">🍎 iPad / iPhone (Safari)：</p>
+          <p>點擊瀏覽器底端或頂部的「分享圖示 ⎋」，向下滑動點選<strong>「加入主畫面 ➕」</strong>，就能像原生 App 一樣全螢幕開啟！</p>
+        </div>
+        <div class="p-3.5 bg-blue-50 rounded-2xl border border-blue-200">
+          <p class="font-black text-blue-900 mb-1">🤖 Android 手機 / 兒童 Pad (Chrome)：</p>
+          <p>點擊右上角「三個點選單 ⋮」，選擇<strong>「加到主螢幕」</strong>或<strong>「安裝應用程式」</strong>即可。</p>
+        </div>
+      </div>
+      <button onclick="closePwaModal()" class="mt-5 w-full py-3 bg-amber-400 hover:bg-amber-500 text-amber-950 font-black rounded-2xl shadow active:scale-95">知道了</button>
+    </div>
+  </div>
+
+<script type="module">
+// ==================== 1. Firebase 雲端即時同步模組 ====================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+// 環境變數解析
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'kid-stars-wonderland';
+let db = null;
+let auth = null;
+let isCloudReady = false;
+let unsubscribeFirestore = null;
+let currentFamilyCode = localStorage.getItem('star_family_code') || '';
+let syncStatus = 'local'; // 'local', 'connecting', 'connected', 'error'
+
+// 初始化音效合成器 (Web Audio API)
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(type) {
+  try {
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    const now = audioCtx.currentTime;
+    if (type === 'star') {
+      // 歡樂高音星星音效
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523.25, now); // C5
+      osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.15); // C6
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+      osc.start(now);
+      osc.stop(now + 0.25);
+    } else if (type === 'redeem') {
+      // 成功慶祝音效
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.setValueAtTime(554.37, now + 0.1);
+      osc.frequency.setValueAtTime(659.25, now + 0.2);
+      osc.frequency.setValueAtTime(880, now + 0.3);
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+      osc.start(now);
+      osc.stop(now + 0.45);
+    }
+  } catch (e) {
+    // 忽略自動播放限制錯誤
+  }
+}
+
+// 嘗試載入 Firebase
+try {
+  if (typeof __firebase_config !== 'undefined') {
+    const firebaseConfig = JSON.parse(__firebase_config);
+    const app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    auth = getAuth(app);
+
+    // 匿名或 Custom Token 認證
+    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+      await signInWithCustomToken(auth, __initial_auth_token);
+    } else {
+      await signInAnonymously(auth);
+    }
+    isCloudReady = true;
+  }
+} catch (e) {
+  console.warn("未提供 Firebase Config 或連線本地端，將使用 LocalStorage 運行", e);
+}
+
+// ==================== 2. 資料結構與狀態管理 ====================
+const STORAGE_KEY = 'kid_star_rewards_cloud';
+
+function getDefaultData() {
+  return {
+    name: '小寶貝',
+    pin: '1234',
+    points: 10,
+    zy: true,
+    lastUpdated: Date.now(),
+    tasks: [
+      { id: 1, ic: '🧹', n: '整理房間與玩具', p: 5 },
+      { id: 2, ic: '🪥', n: '自己刷牙洗臉', p: 2 },
+      { id: 3, ic: '📚', n: '認真完成功課', p: 5 },
+      { id: 4, ic: '🥦', n: '把蔬菜吃光光', p: 3 },
+      { id: 5, ic: '🧺', n: '主動幫忙家事', p: 3 },
+      { id: 6, ic: '💤', n: '準時上床睡覺', p: 4 }
+    ],
+    rewards: [
+      { id: 11, ic: '📺', n: '看30分鐘卡通動畫', p: 15 },
+      { id: 12, ic: '🍪', n: '挑選一份美味點心', p: 20 },
+      { id: 13, ic: '🎮', n: '玩平板遊戲20分鐘', p: 25 },
+      { id: 14, ic: '🎡', n: '選週末好玩的行程', p: 50 },
+      { id: 15, ic: '🧸', n: '買一個心願新玩具', p: 80 }
+    ],
+    log: [
+      { t: '小星星樂園啟動！初始獎勵', d: new Date().toLocaleDateString('zh-TW', {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) }
+    ]
+  };
+}
+
+let S = null;
+try {
+  const local = localStorage.getItem(STORAGE_KEY);
+  if (local) S = JSON.parse(local);
+} catch (e) {}
+if (!S || !Array.isArray(S.tasks)) {
+  S = getDefaultData();
+}
+
+let currentMode = 'kid';
+let parentTab = 'award';
+let pendingRedeemId = null;
+
+// 儲存邏輯 (LocalStorage + 雲端同步)
+async function persistState(shouldBroadcast = true) {
+  try {
+    S.lastUpdated = Date.now();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(S));
+  } catch (e) {}
+
+  if (shouldBroadcast && isCloudReady && currentFamilyCode && db) {
+    try {
+      syncStatus = 'connecting';
+      // 遵循 RULE 1 規範路徑
+      const roomDocRef = doc(db, 'artifacts', appId, 'public', 'data', `family_${currentFamilyCode.trim().toUpperCase()}`);
+      await setDoc(roomDocRef, S);
+      syncStatus = 'connected';
+    } catch (err) {
+      console.error("同步到雲端失敗", err);
+      syncStatus = 'error';
+    }
+  }
+}
+
+// 監聽雲端資料變更（手機操作 -> 平板即時收到）
+function setupCloudListener() {
+  if (unsubscribeFirestore) {
+    unsubscribeFirestore();
+    unsubscribeFirestore = null;
+  }
+
+  if (!isCloudReady || !currentFamilyCode || !db) {
+    syncStatus = 'local';
+    render();
+    return;
+  }
+
+  syncStatus = 'connecting';
+  render();
+
+  const roomDocRef = doc(db, 'artifacts', appId, 'public', 'data', `family_${currentFamilyCode.trim().toUpperCase()}`);
+  
+  unsubscribeFirestore = onSnapshot(roomDocRef, (snap) => {
+    syncStatus = 'connected';
+    if (snap.exists()) {
+      const remoteData = snap.data();
+      if (remoteData && Array.isArray(remoteData.tasks)) {
+        // 如果遠端星星變多，發出星光音效提示兒童
+        if (remoteData.points > S.points) {
+          playSound('star');
+          showToast(`獲得小星星！目前共 ${remoteData.points} 顆 ⭐`, '✨');
+        }
+        S = remoteData;
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(S)); } catch (e) {}
+        
+        // 若使用者正在輸入 input 則避免強制重繪失焦
+        const active = document.activeElement;
+        if (!active || active.tagName !== 'INPUT') {
+          render();
+        }
+      }
+    } else {
+      // 房間若不存在，將本地資料初始化上傳
+      setDoc(roomDocRef, S);
+    }
+    render();
+  }, (error) => {
+    console.error("即時同步連線失敗:", error);
+    syncStatus = 'error';
+    render();
+  });
+}
+
+// ==================== 3. 注音核心模組 ====================
+const ZI = {
+  b:'ㄅ', p:'ㄆ', m:'ㄇ', f:'ㄈ', d:'ㄉ', t:'ㄊ', n:'ㄋ', l:'ㄌ',
+  g:'ㄍ', k:'ㄎ', h:'ㄏ', j:'ㄐ', q:'ㄑ', x:'ㄒ', zh:'ㄓ', ch:'ㄔ',
+  sh:'ㄕ', r:'ㄖ', z:'ㄗ', c:'ㄘ', s:'ㄙ'
+};
+const FM = {
+  a:'ㄚ', o:'ㄛ', e:'ㄜ', ai:'ㄞ', ei:'ㄟ', ao:'ㄠ', ou:'ㄡ', an:'ㄢ',
+  en:'ㄣ', ang:'ㄤ', eng:'ㄥ', er:'ㄦ', i:'ㄧ', ia:'ㄧㄚ', io:'ㄧㄛ',
+  ie:'ㄧㄝ', iao:'ㄧㄠ', iu:'ㄧㄡ', iou:'ㄧㄡ', ian:'ㄧㄢ', in:'ㄧㄣ',
+  iang:'ㄧㄤ', ing:'ㄧㄥ', iong:'ㄩㄥ', u:'ㄨ', ua:'ㄨㄚ', uo:'ㄨㄛ',
+  uai:'ㄨㄞ', ui:'ㄨㄟ', uei:'ㄨㄟ', uan:'ㄨㄢ', un:'ㄨㄣ', uen:'ㄨㄣ',
+  uang:'ㄨㄤ', ueng:'ㄨㄥ', ong:'ㄨㄥ', v:'ㄩ', ve:'ㄩㄝ', van:'ㄩㄢ', vn:'ㄩㄣ'
+};
+const TM = { '1':'', '2':'ˊ', '3':'ˇ', '4':'ˋ' };
+
+function pinyinToZhuyin(p) {
+  const m = /^([a-zü]+)([1-5])?$/.exec(p || '');
+  if (!m) return '';
+  let s = m[1].replace('ü', 'v');
+  let t = m[2] || '5';
+  let i = '', f = '', r = '';
+
+  if (s === 'er') f = 'er';
+  else if (s[0] === 'y') {
+    r = s.slice(1);
+    f = r[0] === 'i' ? r : (r[0] === 'u' ? 'v' + r.slice(1) : 'i' + r);
+  } else if (s[0] === 'w') {
+    r = s.slice(1);
+    f = r[0] === 'u' ? r : 'u' + r;
+  } else {
+    const l = s.slice(0, 2);
+    if (l === 'zh' || l === 'ch' || l === 'sh') i = l;
+    else if (ZI[s[0]]) i = s[0];
+    f = s.slice(i.length);
+    if (i && 'jqx'.indexOf(i) >= 0 && f[0] === 'u') f = 'v' + f.slice(1);
+    if (f === 'i' && ['zh', 'ch', 'sh', 'r', 'z', 'c', 's'].indexOf(i) >= 0) f = '';
+  }
+
+  const b = (ZI[i] || '') + (f === '' ? '' : (FM[f] || ''));
+  if (!b) return '';
+  return t === '5' ? '˙' + b : b + TM[t];
+}
+
+function makeZhuyinChar(char, zhuyin) {
+  const isNeutral = zhuyin[0] === '˙';
+  let tone = '';
+  let mainZhuyin = zhuyin;
+
+  if (isNeutral) {
+    mainZhuyin = mainZhuyin.slice(1);
+  } else if ('ˊˇˋ'.indexOf(mainZhuyin.slice(-1)) >= 0) {
+    tone = mainZhuyin.slice(-1);
+    mainZhuyin = mainZhuyin.slice(0, -1);
+  }
+
+  return `<span class="zc"><span>${char}</span><span class="zp ${isNeutral ? 'n' : ''}">${isNeutral ? '<i>˙</i>' : ''}<span class="zs">${mainZhuyin}</span>${tone ? '<i>' + tone + '</i>' : ''}</span></span>`;
+}
+
+function escapeHtml(str) {
+  return String(str || '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[c]);
+}
+
+function Z(text) {
+  text = String(text || '');
+  if (currentMode !== 'kid' || S.zy === false || !window.pinyinPro) {
+    return escapeHtml(text);
+  }
+
+  return text.split(/([\u4e00-\u9fff]+)/).map((seg, idx) => {
+    if (idx % 2 === 0) return escapeHtml(seg);
+    let pinyinList = [];
+    try {
+      pinyinList = pinyinPro.pinyin(seg, { toneType: 'num', type: 'array', v: true });
+    } catch (e) {
+      return escapeHtml(seg);
+    }
+    return seg.split('').map((ch, j) => {
+      const z = pinyinToZhuyin(pinyinList[j]);
+      return z ? makeZhuyinChar(ch, z) : ch;
+    }).join('');
+  }).join('');
+}
+
+// 輔助函式
+function addLog(actionText) {
+  const dateStr = new Date().toLocaleDateString('zh-TW', {
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  S.log.unshift({ t: actionText, d: dateStr });
+  if (S.log.length > 50) S.log = S.log.slice(0, 50);
+}
+
+let toastTimeout;
+function showToast(text, icon = '✨') {
+  const toast = document.getElementById('toast');
+  const tText = document.getElementById('toast-text');
+  tText.textContent = `${icon} ${text}`;
+  toast.classList.remove('opacity-0', '-translate-y-2', 'pointer-events-none');
+  toast.classList.add('opacity-100', 'translate-y-0');
+  
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => {
+    toast.classList.remove('opacity-100', 'translate-y-0');
+    toast.classList.add('opacity-0', '-translate-y-2', 'pointer-events-none');
+  }, 2200);
+}
+
+// ==================== 4. 畫面渲染 UI ====================
+function render() {
+  const app = document.getElementById('app');
+  let html = '';
+
+  // 雲端同步狀態標籤
+  let syncBadge = '';
+  if (syncStatus === 'connected') {
+    syncBadge = `<button onclick="openSyncModal()" class="text-xs font-black bg-emerald-100 text-emerald-800 px-2.5 py-1.5 rounded-xl border border-emerald-300 flex items-center gap-1 active:scale-95"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> 雲端同步：${currentFamilyCode}</button>`;
+  } else if (syncStatus === 'connecting') {
+    syncBadge = `<button onclick="openSyncModal()" class="text-xs font-black bg-yellow-100 text-yellow-800 px-2.5 py-1.5 rounded-xl border border-yellow-300 flex items-center gap-1 active:scale-95"><span class="w-2 h-2 rounded-full bg-yellow-500 animate-spin"></span> 連線中...</button>`;
+  } else {
+    syncBadge = `<button onclick="openSyncModal()" class="text-xs font-black bg-slate-200 hover:bg-slate-300 text-slate-700 px-2.5 py-1.5 rounded-xl border border-slate-300 flex items-center gap-1 active:scale-95"><span>☁️</span> 啟用多機同步</button>`;
+  }
+
+  // 頂部導航列
+  html += `
+    <header class="flex items-center justify-between gap-2 mb-4">
+      <div class="flex items-center gap-2">
+        <span class="text-3xl star-pulse inline-block">⭐</span>
+        <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-amber-950">${Z('小星星獎勵樂園')}</h1>
+      </div>
+      <div class="flex items-center gap-1.5 sm:gap-2">
+        ${syncBadge}
+        <button onclick="openPwaModal()" title="安裝指引" class="p-2 sm:px-3 sm:py-2 text-xs font-bold bg-white text-slate-600 rounded-2xl border border-slate-300 shadow-sm active:scale-95">
+          <span class="sm:hidden">📲</span><span class="hidden sm:inline">📲 安裝到桌面</span>
+        </button>
+        ${currentMode === 'kid' ? `
+          <button onclick="promptParentPin()" class="text-xs sm:text-sm font-black bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 sm:py-2.5 rounded-2xl shadow active:scale-95 flex items-center gap-1">
+            <span>🔒</span> <span>${Z('家長模式')}</span>
+          </button>
+        ` : `
+          <button onclick="switchMode('kid')" class="text-xs sm:text-sm font-black bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 sm:py-2.5 rounded-2xl shadow active:scale-95 flex items-center gap-1">
+            <span>👧</span> <span>回小朋友端</span>
+          </button>
+        `}
+      </div>
+    </header>
+  `;
+
+  // 星星計數看板
+  html += `
+    <div class="relative overflow-hidden bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 rounded-3xl p-6 sm:p-8 text-center shadow-lg border-4 border-amber-200 mb-6 text-amber-950">
+      <div class="text-base sm:text-lg font-black tracking-wide opacity-90 mb-1">
+        ${Z(S.name + ' 目前擁有的星星')}
+      </div>
+      <div class="text-6xl sm:text-7xl font-black tracking-tight flex items-center justify-center gap-3 my-1">
+        <span class="text-5xl sm:text-6xl drop-shadow-md">⭐</span>
+        <span class="drop-shadow-sm font-extrabold">${S.points}</span>
+      </div>
+      <div class="text-xs sm:text-sm font-bold opacity-85 mt-1">
+        ${currentMode === 'kid' ? Z('好習慣累積大星星，努力換取大獎勵！') : '家長模式：點擊下方任務或加分按鈕，平板將立即同步！'}
+      </div>
+    </div>
+  `;
+
+  if (currentMode === 'kid') {
+    html += renderKidView();
+  } else {
+    html += renderParentView();
+  }
+
+  app.innerHTML = html;
+
+  if (currentMode === 'kid' && S.zy !== false) {
+    app.classList.add('zy-line');
+  } else {
+    app.classList.remove('zy-line');
+  }
+}
+
+// 小朋友端視圖
+function renderKidView() {
+  let h = '';
+
+  // 1. 獎勵商店
+  h += `
+    <section class="mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl sm:text-2xl font-black text-amber-950 flex items-center gap-2">
+          <span>🎁</span> <span>${Z('心願獎勵商店')}</span>
+        </h2>
+        <span class="text-xs font-bold text-amber-900 bg-amber-100 px-3 py-1 rounded-full border border-amber-200">
+          ${Z('點擊兌換')}
+        </span>
+      </div>
+      
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+  `;
+
+  S.rewards.forEach(r => {
+    const canAfford = S.points >= r.p;
+    const percent = Math.min(100, Math.round((S.points / r.p) * 100));
+    const isConfirming = pendingRedeemId === r.id;
+
+    h += `
+      <div class="bg-white rounded-3xl p-5 border-2 ${canAfford ? 'border-amber-400 shadow-md ring-2 ring-amber-100' : 'border-slate-200'} flex flex-col justify-between transition-all">
+        <div>
+          <div class="text-5xl text-center mb-3 transform hover:scale-110 transition-transform cursor-default">${escapeHtml(r.ic)}</div>
+          <h3 class="text-lg font-black text-center text-slate-800 mb-1 leading-snug">${Z(r.n)}</h3>
+          <div class="text-center font-bold text-amber-800 text-sm mb-3">
+            ${Z('需要')} <span class="text-lg font-black text-amber-600">⭐ ${r.p}</span>
+          </div>
+          
+          <div class="w-full bg-slate-100 rounded-full h-3.5 overflow-hidden p-0.5 border border-slate-200 mb-1.5">
+            <div class="bg-gradient-to-r from-amber-400 to-yellow-500 h-full rounded-full transition-all duration-500" style="width: ${percent}%"></div>
+          </div>
+          <div class="text-xs font-bold text-slate-400 text-right mb-4">
+            ${percent}% (${S.points}/${r.p})
+          </div>
+        </div>
+
+        <div>
+          ${canAfford ? `
+            <button onclick="handleKidRedeem(${r.id})" class="w-full py-3 px-4 rounded-2xl font-black text-white shadow-md active:scale-95 transition-all text-base ${isConfirming ? 'bg-rose-500 hover:bg-rose-600 animate-pulse' : 'bg-emerald-500 hover:bg-emerald-600'}">
+              ${isConfirming ? Z('再按一次確定兌換！') : Z('兌換這個獎勵')}
+            </button>
+          ` : `
+            <div class="text-center py-2.5 px-3 rounded-2xl bg-slate-100 text-slate-500 font-bold text-xs sm:text-sm">
+              ${Z('還差')} <span class="text-rose-500 font-extrabold">${r.p - S.points}</span> ${Z('顆星星，加油！')}
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+  });
+
+  h += `
+      </div>
+    </section>
+  `;
+
+  // 2. 賺取星星任務
+  h += `
+    <section class="mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl sm:text-2xl font-black text-amber-950 flex items-center gap-2">
+          <span>💪</span> <span>${Z('如何賺取小星星')}</span>
+        </h2>
+        <span class="text-xs font-bold text-blue-900 bg-blue-100 px-3 py-1 rounded-full border border-blue-200">
+          ${Z('完成請跟爸爸媽媽說')}
+        </span>
+      </div>
+      
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+  `;
+
+  S.tasks.forEach(t => {
+    h += `
+      <div class="bg-white rounded-3xl p-4 border-2 border-blue-100 shadow-sm flex flex-col items-center text-center justify-between">
+        <div class="text-4xl sm:text-5xl mb-2">${escapeHtml(t.ic)}</div>
+        <div class="font-bold text-sm sm:text-base text-slate-700 mb-2 leading-snug">${Z(t.n)}</div>
+        <div class="bg-amber-100 text-amber-800 px-3 py-1 rounded-xl text-xs sm:text-sm font-black">
+          +${t.p} ⭐
+        </div>
+      </div>
+    `;
+  });
+
+  h += `
+      </div>
+    </section>
+  `;
+
+  h += renderLogSection(6);
+  return h;
+}
+
+// 家長端視圖
+function renderParentView() {
+  let h = '';
+
+  h += `
+    <div class="flex flex-wrap gap-2 mb-6 border-b border-amber-200 pb-3">
+      <button onclick="switchParentTab('award')" class="px-4 py-2.5 rounded-2xl font-black text-sm transition-all active:scale-95 ${parentTab === 'award' ? 'bg-amber-500 text-white shadow' : 'bg-white text-slate-700 border border-slate-300'}">
+        ⭐ 給星星 / 扣除
+      </button>
+      <button onclick="switchParentTab('task')" class="px-4 py-2.5 rounded-2xl font-black text-sm transition-all active:scale-95 ${parentTab === 'task' ? 'bg-amber-500 text-white shadow' : 'bg-white text-slate-700 border border-slate-300'}">
+        📝 任務設定
+      </button>
+      <button onclick="switchParentTab('reward')" class="px-4 py-2.5 rounded-2xl font-black text-sm transition-all active:scale-95 ${parentTab === 'reward' ? 'bg-amber-500 text-white shadow' : 'bg-white text-slate-700 border border-slate-300'}">
+        🎁 獎勵設定
+      </button>
+      <button onclick="switchParentTab('settings')" class="px-4 py-2.5 rounded-2xl font-black text-sm transition-all active:scale-95 ${parentTab === 'settings' ? 'bg-amber-500 text-white shadow' : 'bg-white text-slate-700 border border-slate-300'}">
+        ⚙️ 系統與同步設定
+      </button>
+    </div>
+  `;
+
+  if (parentTab === 'award') {
+    h += `
+      <div class="space-y-6">
+        <div>
+          <h3 class="text-lg font-black text-slate-800 mb-3 flex items-center gap-2">
+            <span>✅</span> 點擊任務直接發放星星（兒童 Pad 會立即跳動更新）：
+          </h3>
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+    `;
+    S.tasks.forEach(t => {
+      h += `
+        <button onclick="parentAwardTask(${t.id})" class="bg-white hover:bg-amber-50 border-2 border-amber-200 rounded-2xl p-3 text-center shadow-sm active:scale-95 transition-all flex flex-col items-center justify-between">
+          <div class="text-3xl mb-1">${escapeHtml(t.ic)}</div>
+          <div class="font-bold text-slate-700 text-sm mb-2 line-clamp-1">${escapeHtml(t.n)}</div>
+          <span class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs py-1.5 rounded-xl">
+            獎勵 +${t.p} ⭐
+          </span>
+        </button>
+      `;
+    });
+    h += `
+          </div>
+        </div>
+
+        <div class="bg-white rounded-3xl p-5 border-2 border-slate-200 shadow-sm">
+          <h3 class="font-black text-slate-800 text-base mb-3">🛠️ 手動微調星星數：</h3>
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="adjustPoints(-5)" class="px-3.5 py-2 bg-rose-100 hover:bg-rose-200 text-rose-700 font-black rounded-xl active:scale-95">-5</button>
+            <button onclick="adjustPoints(-1)" class="px-3.5 py-2 bg-rose-100 hover:bg-rose-200 text-rose-700 font-black rounded-xl active:scale-95">-1</button>
+            <button onclick="adjustPoints(1)" class="px-3.5 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-black rounded-xl active:scale-95">+1</button>
+            <button onclick="adjustPoints(2)" class="px-3.5 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-black rounded-xl active:scale-95">+2</button>
+            <button onclick="adjustPoints(5)" class="px-3.5 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-black rounded-xl active:scale-95">+5</button>
+            <button onclick="adjustPoints(10)" class="px-3.5 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-black rounded-xl active:scale-95">+10</button>
+          </div>
+        </div>
+
+        ${renderLogSection(15)}
+      </div>
+    `;
+  } else if (parentTab === 'task' || parentTab === 'reward') {
+    const isTask = parentTab === 'task';
+    const list = isTask ? S.tasks : S.rewards;
+
+    h += `
+      <div class="bg-white rounded-3xl p-5 sm:p-6 border-2 border-slate-200 shadow-sm space-y-4">
+        <div class="flex items-center justify-between border-b pb-3">
+          <h3 class="font-black text-slate-800 text-lg">
+            ${isTask ? '📝 設定任務清單' : '🎁 設定獎勵清單'}
+          </h3>
+          <button onclick="addItem('${isTask ? 't' : 'r'}')" class="bg-emerald-500 hover:bg-emerald-600 text-white font-black text-sm px-4 py-2 rounded-xl shadow active:scale-95 flex items-center gap-1">
+            <span>➕</span> <span>新增項目</span>
+          </button>
+        </div>
+
+        <div class="space-y-3">
+    `;
+
+    list.forEach((item, index) => {
+      h += `
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 p-3 rounded-2xl bg-slate-50 border border-slate-200">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-slate-400 w-5">${index + 1}.</span>
+            <input type="text" value="${escapeHtml(item.ic)}" title="圖示 Emoji" 
+                   onchange="updateListItem('${isTask ? 't' : 'r'}', ${item.id}, 'ic', this.value)"
+                   class="w-12 text-center text-xl p-1.5 border border-slate-300 rounded-xl bg-white font-mono focus:outline-none focus:border-amber-500">
+          </div>
+          
+          <div class="flex-1">
+            <input type="text" value="${escapeHtml(item.n)}" placeholder="項目名稱" 
+                   onchange="updateListItem('${isTask ? 't' : 'r'}', ${item.id}, 'n', this.value)"
+                   class="w-full text-base font-bold p-2 border border-slate-300 rounded-xl bg-white focus:outline-none focus:border-amber-500">
+          </div>
+
+          <div class="flex items-center justify-between sm:justify-start gap-2">
+            <div class="flex items-center gap-1">
+              <span class="text-xs font-bold text-slate-500">星星：</span>
+              <input type="number" min="1" max="999" value="${item.p}" 
+                     onchange="updateListItem('${isTask ? 't' : 'r'}', ${item.id}, 'p', this.value)"
+                     class="w-20 text-center font-black p-2 border border-slate-300 rounded-xl bg-white focus:outline-none focus:border-amber-500">
+            </div>
+            <button onclick="deleteListItem('${isTask ? 't' : 'r'}', ${item.id})" class="p-2 text-rose-500 hover:bg-rose-50 rounded-xl font-bold active:scale-95">
+              🗑️ 刪除
+            </button>
+          </div>
+        </div>
+      `;
+    });
+
+    h += `
+        </div>
+      </div>
+    `;
+  } else if (parentTab === 'settings') {
+    h += `
+      <div class="bg-white rounded-3xl p-5 sm:p-6 border-2 border-slate-200 shadow-sm space-y-6">
+        <h3 class="font-black text-slate-800 text-lg border-b pb-3">⚙️ 偏好與安全設定</h3>
+        
+        <div class="space-y-4 max-w-md">
+          <div>
+            <label class="block text-xs font-black text-slate-500 mb-1">小朋友姓名 / 暱稱：</label>
+            <input type="text" value="${escapeHtml(S.name)}" onchange="updateSetting('name', this.value)" 
+                   class="w-full font-bold p-2.5 border-2 border-slate-200 rounded-xl focus:border-amber-500 focus:outline-none">
+          </div>
+
+          <div>
+            <label class="block text-xs font-black text-slate-500 mb-1">家長模式安全 PIN 碼：</label>
+            <input type="password" inputmode="numeric" value="${escapeHtml(S.pin)}" onchange="updateSetting('pin', this.value)" 
+                   class="w-full font-black tracking-widest p-2.5 border-2 border-slate-200 rounded-xl focus:border-amber-500 focus:outline-none">
+          </div>
+
+          <div>
+            <label class="block text-xs font-black text-slate-500 mb-1">直接設定星星總數：</label>
+            <input type="number" min="0" value="${S.points}" onchange="updateSetting('points', this.value)" 
+                   class="w-full font-black p-2.5 border-2 border-slate-200 rounded-xl focus:border-amber-500 focus:outline-none">
+          </div>
+
+          <div class="pt-2">
+            <label class="flex items-center gap-3 cursor-pointer select-none">
+              <input type="checkbox" ${S.zy !== false ? 'checked' : ''} onchange="updateSetting('zy', this.checked)"
+                     class="w-5 h-5 text-amber-500 rounded-lg focus:ring-amber-400">
+              <span class="font-black text-slate-700 text-sm">小朋友模式開啟國字直書注音</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="border-t pt-5">
+          <h4 class="font-black text-slate-800 text-base mb-2">☁️ 家庭多裝置即時同步設定</h4>
+          <p class="text-xs text-slate-500 mb-3">目前的同步代碼：<span class="font-mono font-bold text-blue-600">${currentFamilyCode || '尚未設定（目前為單機離線）'}</span></p>
+          <button onclick="openSyncModal()" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-sm rounded-xl shadow active:scale-95">
+            設定 / 更換同步代碼
+          </button>
+        </div>
+
+        <div class="border-t pt-5 flex items-center justify-between">
+          <div>
+            <div class="font-bold text-sm text-rose-600">清除所有兌換紀錄</div>
+            <div class="text-xs text-slate-400">保留星星與各項任務設定</div>
+          </div>
+          <button onclick="clearHistoryLog()" class="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 font-black text-sm rounded-xl border border-rose-200 active:scale-95">
+            清空紀錄
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  return h;
+}
+
+function renderLogSection(maxCount) {
+  let h = `
+    <section class="mt-6">
+      <h3 class="text-base sm:text-lg font-black text-slate-700 mb-3 flex items-center gap-1.5">
+        <span>📒</span> <span>${currentMode === 'kid' ? Z('榮譽光榮榜') : '歷史紀錄'}</span>
+      </h3>
+      <div class="bg-white rounded-3xl p-4 sm:p-5 border-2 border-slate-200 shadow-sm space-y-2">
+  `;
+
+  if (!S.log || S.log.length === 0) {
+    h += `<div class="text-center py-4 text-slate-400 font-bold text-sm">${currentMode === 'kid' ? Z('目前還沒有紀錄喔！') : '尚無紀錄'}</div>`;
+  } else {
+    S.log.slice(0, maxCount).forEach(item => {
+      h += `
+        <div class="flex items-center justify-between text-xs sm:text-sm py-1.5 border-b border-slate-100 last:border-0">
+          <span class="font-bold text-slate-700">${currentMode === 'kid' ? Z(item.t) : escapeHtml(item.t)}</span>
+          <span class="text-slate-400 font-mono text-[11px] sm:text-xs shrink-0 ml-2">${escapeHtml(item.d)}</span>
+        </div>
+      `;
+    });
+  }
+
+  h += `
+      </div>
+    </section>
+  `;
+  return h;
+}
+
+// ==================== 5. 互動事件綁定 ====================
+
+window.handleKidRedeem = function(id) {
+  const reward = S.rewards.find(r => r.id === id);
+  if (!reward) return;
+
+  if (pendingRedeemId === id) {
+    if (S.points >= reward.p) {
+      S.points -= reward.p;
+      addLog(`兌換「${reward.n}」扣除 ${reward.p} 顆星`);
+      persistState(true);
+      pendingRedeemId = null;
+      playSound('redeem');
+      showToast(`兌換成功！已獲得 ${reward.n}`, '🎉');
+      render();
+    }
+  } else {
+    pendingRedeemId = id;
+    playSound('star');
+    showToast('請再按一次確認以完成兌換！', '🔔');
+    render();
+  }
+};
+
+window.parentAwardTask = function(id) {
+  const task = S.tasks.find(t => t.id === id);
+  if (!task) return;
+  S.points += task.p;
+  addLog(`完成【${task.n}】+${task.p} ⭐`);
+  persistState(true);
+  playSound('star');
+  showToast(`已發送 +${task.p} 顆星星！`, '⭐');
+  render();
+};
+
+window.adjustPoints = function(diff) {
+  S.points = Math.max(0, S.points + diff);
+  addLog(`手動調整點數：${diff > 0 ? '+' + diff : diff} ⭐`);
+  persistState(true);
+  playSound('star');
+  showToast(`目前星星：${S.points}`, '⭐');
+  render();
+};
+
+window.switchParentTab = function(tab) {
+  parentTab = tab;
+  render();
+};
+
+window.updateSetting = function(field, val) {
+  if (field === 'points') {
+    S.points = Math.max(0, parseInt(val, 10) || 0);
+  } else if (field === 'zy') {
+    S.zy = !!val;
+  } else {
+    S[field] = String(val).trim();
+  }
+  persistState(true);
+  render();
+};
+
+window.clearHistoryLog = function() {
+  S.log = [];
+  persistState(true);
+  showToast('已清空歷史紀錄', '🧹');
+  render();
+};
+
+window.addItem = function(type) {
+  const isTask = type === 't';
+  const newItem = {
+    id: Date.now(),
+    ic: isTask ? '🌟' : '🎁',
+    n: isTask ? '新好習慣任務' : '新願望獎勵',
+    p: isTask ? 3 : 20
+  };
+  if (isTask) S.tasks.push(newItem);
+  else S.rewards.push(newItem);
+  persistState(true);
+  render();
+};
+
+window.deleteListItem = function(type, id) {
+  if (type === 't') S.tasks = S.tasks.filter(t => t.id !== id);
+  else S.rewards = S.rewards.filter(r => r.id !== id);
+  persistState(true);
+  render();
+};
+
+window.updateListItem = function(type, id, field, value) {
+  const list = type === 't' ? S.tasks : S.rewards;
+  const target = list.find(x => x.id === id);
+  if (!target) return;
+
+  if (field === 'p') {
+    target.p = Math.max(1, parseInt(value, 10) || 1);
+  } else {
+    target[field] = String(value).trim();
+  }
+  persistState(true);
+};
+
+// ==================== 6. 家庭代碼設定彈窗 ====================
+window.openSyncModal = function() {
+  const input = document.getElementById('room-code-input');
+  input.value = currentFamilyCode;
+  document.getElementById('sync-modal').classList.remove('hidden');
+};
+
+window.closeSyncModal = function() {
+  document.getElementById('sync-modal').classList.add('hidden');
+};
+
+window.generateRandomRoomCode = function() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let result = 'STAR';
+  for (let i = 0; i < 4; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  document.getElementById('room-code-input').value = result;
+};
+
+window.saveAndConnectRoom = function() {
+  const code = document.getElementById('room-code-input').value.trim().toUpperCase();
+  if (!code) {
+    showToast('請輸入家庭代碼', '⚠️');
+    return;
+  }
+  currentFamilyCode = code;
+  localStorage.setItem('star_family_code', code);
+  closeSyncModal();
+  setupCloudListener();
+  persistState(true);
+  showToast(`已設定同步代碼：${code}`, '☁️');
+};
+
+window.disconnectRoom = function() {
+  currentFamilyCode = '';
+  localStorage.removeItem('star_family_code');
+  if (unsubscribeFirestore) {
+    unsubscribeFirestore();
+    unsubscribeFirestore = null;
+  }
+  syncStatus = 'local';
+  closeSyncModal();
+  showToast('已切換為本機單機模式', '📴');
+  render();
+};
+
+// ==================== 7. 家長 PIN 與安全管理 ====================
+window.switchMode = function(mode) {
+  currentMode = mode;
+  pendingRedeemId = null;
+  render();
+};
+
+window.promptParentPin = function() {
+  const modal = document.getElementById('pin-modal');
+  const input = document.getElementById('pin-input');
+  input.value = '';
+  modal.classList.remove('hidden');
+  input.focus();
+};
+
+document.getElementById('pin-cancel-btn').addEventListener('click', () => {
+  document.getElementById('pin-modal').classList.add('hidden');
+});
+
+function checkPinAndEnter() {
+  const input = document.getElementById('pin-input');
+  const enteredPin = input.value.trim();
+  const currentPin = S.pin || '1234';
+
+  if (enteredPin === currentPin) {
+    document.getElementById('pin-modal').classList.add('hidden');
+    switchMode('parent');
+    showToast('歡迎家長進入管理模式！', '🔓');
+  } else {
+    showToast('PIN 密碼不正確', '⚠️');
+    input.value = '';
+    input.focus();
+  }
+}
+
+document.getElementById('pin-confirm-btn').addEventListener('click', checkPinAndEnter);
+document.getElementById('pin-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') checkPinAndEnter();
+});
+
+// PWA 指引彈窗
+window.openPwaModal = function() {
+  document.getElementById('pwa-modal').classList.remove('hidden');
+};
+window.closePwaModal = function() {
+  document.getElementById('pwa-modal').classList.add('hidden');
+};
+
+// 初始化啟動
+window.onload = function() {
+  setupCloudListener();
+  render();
+};
+</script>
+</body>
+</html>
